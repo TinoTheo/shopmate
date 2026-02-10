@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- iOS specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ShopMate">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="apple-touch-startup-image" href="/splash.png">
+
+    <!-- Android/Chrome -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="ShopMate">
+    <meta name="theme-color" content="#008751">
+    <meta name="msapplication-TileColor" content="#008751">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#008751">
+
+    <title>Shopmate</title>
+    <style>
+        :root {
+            --primary: #008751; /* EcoCash Green inspiration */
+            --primary-dark: #005e38;
+            --accent: #f39c12; /* Orange for actions */
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --white: #ffffff;
+            --gray: #95a5a6;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 8px;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font);
+            background-color: var(--light);
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header & Nav --- */
+        header {
+            background-color: var(--dark);
+            color: var(--white);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav {
+            background-color: var(--white);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 5px 15px;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .nav-btn.active {
+            color: var(--primary);
+            background-color: rgba(0, 135, 81, 0.1);
+        }
+
+        /* --- Main Views --- */
+        main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 15px;
+            background: var(--light);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .view.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* --- POS View --- */
+        .pos-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 10px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            outline: none;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        .product-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            border: 2px solid transparent;
+            position: relative;
+            height: 140px;
+        }
+
+        .product-card:active {
+            background-color: #f9f9f9;
+            transform: scale(0.98);
+        }
+
+        .product-card.low-stock {
+            border-color: var(--danger);
+        }
+
+        .product-card.out-of-stock {
+            opacity: 0.5;
+            pointer-events: none;
+            background-color: #eee;
+        }
+
+        .prod-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            line-height: 1.2;
+        }
+
+        .prod-price {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .prod-stock {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: auto;
+        }
+
+        /* --- Cart / Checkout --- */
+        .cart-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--white);
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .cart-bar.visible {
+            transform: translateY(0);
+        }
+
+        .cart-info h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .cart-count {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .btn-checkout {
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        /* --- Inventory View --- */
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: var(--gray); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--gray); color: var(--dark); }
+        .btn-ghost { background: transparent; color: var(--danger); border: none; padding: 4px 8px; font-size: 1.2rem; line-height: 1; }
+
+        .inv-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inv-item {
+            background: var(--white);
+            padding: 12px;
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+            gap: 4px;
+        }
+
+        .inv-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+
+        .inv-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        /* Voided Item Styling */
+        .transaction-row.voided {
+            background-color: #f8f9fa;
+            color: var(--gray);
+            text-decoration: line-through;
+        }
+       
+        .item-voided {
+            text-decoration: line-through;
+            color: var(--gray);
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            padding: 4px;
+        }
+
+        /* --- Reports View --- */
+        .report-card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .report-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .report-label {
+            color: var(--gray);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: var(--white);
+            padding: 15px;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        /* --- License Section Styles --- */
+        .license-section {
+            background: var(--white);
+            padding: 15px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--accent);
+        }
+
+        .license-status-banner {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+            background-color: #e8f5e9;
+            color: var(--primary-dark);
+            transition: background 0.3s;
+        }
+       
+        .license-status-banner.grace {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffe0b2;
+        }
+
+        .license-status-banner.expired {
+            background-color: #ffebee;
+            color: var(--danger);
+        }
+       
+        .license-info-grid {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--white);
+            width: 100%;
+            max-width: 400px;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control.error {
+            border-color: var(--danger);
+            background-color: #fff5f5;
+        }
+
+        .input-error-msg {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 4px;
+            min-height: 1.2em;
+        }
+
+        /* Cart Items List in Modal */
+        .cart-items-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .cart-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .pay-btn {
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: var(--radius);
+            background: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .pay-btn.selected {
+            border-color: var(--primary);
+            background-color: rgba(0, 135, 81, 0.1);
+            color: var(--primary);
+        }
+
+        .modal-footer-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* --- Toast Notification --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--dark);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            margin-bottom: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Utility */
+        .text-right { text-align: right; }
+        .text-small { font-size: 0.85rem; }
+        .text-danger { color: var(--danger); }
+        .text-gray { color: var(--gray); }
+        .flex-full { flex: 1; }
+        .hidden { display: none !important; }
+        .truncate-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+            <span id="business-name-display">My Business</span>
+        </div>
+        <div id="clock" class="text-small">--:--</div>
+        <!-- Add this inside your <header> tag, after the brand -->
+        <button id="mobile-install-btn" onclick="showMobileInstall()" 
+                style="background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; display: none;">
+            📱 Install
+        </button>
+    </header>
+
+    <nav>
+        <button class="nav-btn active" onclick="switchTab('pos', this)">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 2h2v5h5v2h-5v5h-2v-5H7v-2h5V5z"/></svg>
+            Sell
+        </button>
+        <button class="nav-btn" onclick="switchTab('inventory', this)">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2zm-1 18H5V9h14v11zm1-13H4V4h16v3z"/></svg>
+            Stock
+        </button>
+        <button class="nav-btn" onclick="switchTab('reports', this)">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+            Report
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings', this)">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+            Data
+        </button>
+    </nav>
+
+    <main>
+        <!-- POS VIEW -->
+        <section id="view-pos" class="view active">
+            <div class="pos-layout">
+                <input type="text" id="pos-search" class="search-bar" placeholder="Search item..." onkeyup="filterPos()">
+                <div id="pos-grid" class="product-grid">
+                    <!-- Products injected here -->
+                </div>
+                <div style="height: 60px;"></div> <!-- Spacer -->
+            </div>
+        </section>
+
+        <!-- INVENTORY VIEW -->
+        <section id="view-inventory" class="view">
+            <div class="inventory-header">
+                <h2>Inventory</h2>
+                <button class="btn btn-primary" onclick="openModal('modal-product')">+ Add New</button>
+            </div>
+            <input type="text" id="inv-search" class="search-bar" placeholder="Search stock..." onkeyup="renderInventory()">
+            <div id="inv-list" class="inv-list" style="padding-bottom: 20px;">
+                <!-- Inventory items injected here -->
+            </div>
+        </section>
+
+        <!-- REPORTS VIEW -->
+        <section id="view-reports" class="view">
+            <h2>Today's Report</h2>
+            <div class="report-card">
+                <div class="report-label">Daily Sales</div>
+                <div class="report-value" id="report-total-sales">$0.00</div>
+                <div class="report-label">Daily Profit</div>
+                <div class="report-value text-primary" id="report-total-profit" style="font-size: 1.8rem; color: var(--accent);">$0.00</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="report-label">Cash</div>
+                    <div class="prod-price" id="report-cash">$0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div class="report-label">EcoCash</div>
+                    <div class="prod-price" id="report-ecocash">$0.00</div>
+                </div>
+            </div>
+
+            <div class="inventory-header">
+                <h3>Recent Transactions</h3>
+                <button class="btn btn-secondary btn-sm" onclick="exportCSV()">Export CSV</button>
+            </div>
+            <div id="transaction-list" class="inv-list">
+                <!-- Transaction list -->
+            </div>
+        </section>
+
+        <!-- SETTINGS VIEW -->
+        <section id="view-settings" class="view">
+            <h2>Settings & Data</h2>
+           
+            <!-- License Section -->
+            <div class="license-section">
+                <h3>License Information</h3>
+                <div id="license-banner" class="license-status-banner">Checking status...</div>
+               
+                <div class="license-info-grid">
+                    <div class="form-group">
+                        <label>Device ID</label>
+                        <input type="text" id="setting-device-id" class="form-control" readonly onclick="this.select()">
+                    </div>
+
+                    <div class="form-group">
+                        <label>License Key (JSON)</label>
+                        <input type="text" id="setting-license-key" class="form-control" placeholder="Paste license JSON here...">
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 5px;" onclick="activateLicense()">Activate Full License</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Renewal Code</label>
+                        <input type="text" id="setting-renewal-code" class="form-control" placeholder="e.g. RENEW-90">
+                        <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" onclick="processRenewalCode()">Redeem Renewal Code</button>
+                        <p class="text-small text-gray" style="margin-top: 5px;">Contact vendor for a renewal code.</p>
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="setting-business-name" class="form-control" onchange="updateSettings()">
+            </div>
+           
+            <div class="form-group">
+                <label>Currency Symbol</label>
+                <select id="setting-currency" class="form-control" onchange="updateSettings()">
+                    <option value="$">$ (USD/ZiG)</option>
+                    <option value="R">R (Rand)</option>
+                    <option value="£">£ (Pound)</option>
+                </select>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+
+            <h3>Data Management</h3>
+            <p class="text-small text-gray">Data is stored on this device. Export regularly to avoid loss.</p>
+            <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="exportCSV()">Export Sales (CSV)</button>
+            <button class="btn btn-danger" style="width: 100%;" onclick="clearAllData()">⚠ Reset All Data</button>
+        </section>
+    </main>
+
+    <!-- CART BAR -->
+    <div id="cart-bar" class="cart-bar">
+        <div class="cart-info">
+            <div class="cart-count" id="cart-count">0 items</div>
+            <h3 id="cart-total">$0.00</h3>
+        </div>
+        <button class="btn-checkout" onclick="openCheckout()">PAY</button>
+    </div>
+
+    <!-- PRODUCT MODAL (Add/Edit) -->
+    <div id="modal-product" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="prod-modal-title">Add Product</span>
+                <span style="cursor:pointer" onclick="closeModal('modal-product')">✕</span>
+            </div>
+            <input type="hidden" id="prod-id">
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="prod-name" class="form-control" placeholder="e.g. Coke 500ml">
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Selling Price</label>
+                    <input type="number" id="prod-price" class="form-control" placeholder="0.00">
+                </div>
+                <div>
+                    <label>Cost Price</label>
+                    <input type="number" id="prod-cost" class="form-control" placeholder="0.00">
+                </div>
+            </div>
+            <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>Current Stock</label>
+                    <input type="number" id="prod-stock" class="form-control" placeholder="0">
+                </div>
+                <div>
+                    <label>Low Stock Alert</label>
+                    <input type="number" id="prod-min" class="form-control" value="5">
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%" onclick="saveProduct()">Save Product</button>
+        </div>
+    </div>
+
+    <!-- CHECKOUT MODAL (Updated for Cart Item Voiding) -->
+    <div id="modal-checkout" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Complete Sale</span>
+                <span style="cursor:pointer" onclick="closeModal('modal-checkout')">✕</span>
+            </div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <div class="text-gray">Total Amount</div>
+                <div class="report-value" id="checkout-total-display">$0.00</div>
+            </div>
+
+            <!-- Phase 1: Cart Item List -->
+            <ul id="checkout-cart-list" class="cart-items-list">
+                <!-- Items injected here -->
+            </ul>
+           
+            <div class="form-group">
+                <label>Payment Method</label>
+                <div class="payment-options">
+                    <div class="pay-btn" id="pay-cash" onclick="selectPayment('Cash')">
+                        Cash
+                    </div>
+                    <div class="pay-btn" id="pay-ecocash" onclick="selectPayment('EcoCash')">
+                        EcoCash
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Amount Received <span style="color:var(--danger)">*</span></label>
+                <input type="number" id="pay-received" class="form-control" placeholder="0.00" oninput="calcChange()">
+                <div id="pay-received-error" class="input-error-msg"></div>
+            </div>
+           
+            <div id="change-display" class="text-right text-small" style="height: 20px; color: var(--primary); font-weight: bold;"></div>
+
+            <div class="modal-footer-actions">
+                <button id="btn-cancel-checkout" class="btn btn-outline flex-full" onclick="cancelSale()">Cancel</button>
+                <button id="btn-finalize" class="btn btn-primary flex-full" onclick="finalizeSale()" disabled>Confirm Sale</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSACTION DETAILS MODAL (NEW for Post-Purchase Voiding) -->
+    <div id="modal-transaction-details" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Transaction Details</span>
+                <span style="cursor:pointer" onclick="closeModal('modal-transaction-details')">✕</span>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <div class="text-gray text-small">Date & Time</div>
+                <div id="trans-details-time" style="font-weight:bold;"></div>
+                <div class="text-gray text-small">Method</div>
+                <div id="trans-details-method" style="font-weight:bold;"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Items</label>
+                <div id="trans-items-list" class="inv-list">
+                    <!-- Items injected here -->
+                </div>
+            </div>
+           
+            <div style="text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+                <div class="text-gray">Net Total</div>
+                <div id="trans-details-total" class="report-value" style="font-size: 1.5rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STOCK MODAL (Quick Adjust) -->
+    <div id="modal-stock" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Adjust Stock</span>
+                <span style="cursor:pointer" onclick="closeModal('modal-stock')">✕</span>
+            </div>
+            <input type="hidden" id="stock-prod-id">
+            <h3 id="stock-prod-name" style="margin-top: 0;">Product</h3>
+            <div class="form-group">
+                <label>Current: <span id="stock-current-val"></span></label>
+                <input type="number" id="stock-adj-qty" class="form-control" placeholder="Add quantity">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" style="flex: 1" onclick="closeModal('modal-stock')">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1" onclick="processStockAdjustment()">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <script>
+        // --- LICENSE & CONFIG CONSTANTS ---
+        const TRIAL_DAYS = 7;
+        const GRACE_DAYS = 3;
+       
+        // --- DATA STATE ---
+        const defaultProducts = [
+            { id: 1, name: "Bread", price: 1.50, cost: 1.20, stock: 20, lowStock: 5 },
+            { id: 2, name: "Cooking Oil 2L", price: 5.00, cost: 4.50, stock: 10, lowStock: 3 },
+            { id: 3, name: "Coke 500ml", price: 1.00, cost: 0.75, stock: 50, lowStock: 12 },
+            { id: 4, name: "Sugar 2kg", price: 4.50, cost: 4.00, stock: 15, lowStock: 4 },
+            { id: 5, name: "Bottle Water", price: 0.50, cost: 0.30, stock: 100, lowStock: 20 }
+        ];
+
+        let state = {
+            products: JSON.parse(localStorage.getItem('sme_products')) || defaultProducts,
+            sales: JSON.parse(localStorage.getItem('sme_sales')) || [],
+            settings: JSON.parse(localStorage.getItem('sme_settings')) || { name: "My Shop", currency: "$" },
+            cart: [],
+            selectedPaymentMethod: null
+        };
+
+        // --- LICENSE UTILITIES ---
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36);
+        }
+
+        function getDeviceID() {
+            let did = localStorage.getItem('device_id');
+            if (!did) {
+                const seed = Math.random().toString(36);
+                const fp = navigator.userAgent + window.screen.width + window.screen.height;
+                did = simpleHash(fp + seed);
+                localStorage.setItem('device_id', did);
+            }
+            return did;
+        }
+
+        function initLicense() {
+            if (!localStorage.getItem('first_launch_date')) {
+                localStorage.setItem('first_launch_date', Date.now());
+            }
+            getDeviceID();
+        }
+
+        function processRenewalCode() {
+            const code = document.getElementById('setting-renewal-code').value.trim();
+            const did = getDeviceID();
+            if (!code) { showToast("Please enter a renewal code"); return; }
+            const parts = code.split('-');
+            if (parts.length !== 2 || parts[0] !== 'RENEW') { showToast("Invalid renewal code format"); return; }
+            const days = parseInt(parts[1]);
+            if (isNaN(days) || days <= 0) { showToast("Invalid duration in code"); return; }
+            const now = Date.now();
+            const newExpiry = now + (days * 24 * 60 * 60 * 1000);
+            const signature = simpleHash(did + newExpiry);
+            const newLicense = { d: did, e: newExpiry, s: signature };
+            localStorage.setItem('license_data', JSON.stringify(newLicense));
+            localStorage.setItem('license_last_validated_at', now);
+            document.getElementById('setting-renewal-code').value = '';
+            renderLicenseSettings();
+            showToast(`License renewed for ${days} days!`);
+        }
+
+        function isAppUnlocked() {
+            const now = Date.now();
+            const firstLaunch = parseInt(localStorage.getItem('first_launch_date'));
+            const trialExpiry = firstLaunch + (TRIAL_DAYS * 24 * 60 * 60 * 1000);
+            if (now < trialExpiry) return true;
+            const licStr = localStorage.getItem('license_data');
+            if (licStr) {
+                try {
+                    const lic = JSON.parse(licStr);
+                    const localDid = getDeviceID();
+                    if (lic.d !== localDid) return false;
+                    const graceExpiry = lic.e + (GRACE_DAYS * 24 * 60 * 60 * 1000);
+                    if (now < graceExpiry) return true;
+                    return false;
+                } catch (e) { return false; }
+            }
+            return false;
+        }
+
+        function activateLicense() {
+            const input = document.getElementById('setting-license-key').value.trim();
+            if (!input) { showToast("Please enter a license key"); return; }
+            try {
+                const lic = JSON.parse(input);
+                if (!lic.d || !lic.e || !lic.s) throw new Error("Invalid format");
+                const localDid = getDeviceID();
+                if (lic.d !== localDid) { showToast("License does not match this device"); return; }
+                const now = Date.now();
+                const expectedSig = simpleHash(lic.d + lic.e);
+                if (lic.s !== expectedSig) { showToast("Invalid license signature"); return; }
+                localStorage.setItem('license_data', input);
+                localStorage.setItem('license_last_validated_at', now);
+                renderLicenseSettings();
+                showToast("License Activated");
+            } catch (e) { showToast("Invalid License Format"); }
+        }
+
+        function renderLicenseSettings() {
+            const deviceId = localStorage.getItem('device_id');
+            document.getElementById('setting-device-id').value = deviceId;
+            const banner = document.getElementById('license-banner');
+            const now = Date.now();
+            const firstLaunch = parseInt(localStorage.getItem('first_launch_date'));
+            const trialExpiry = firstLaunch + (TRIAL_DAYS * 24 * 60 * 60 * 1000);
+            const licStr = localStorage.getItem('license_data');
+            let statusText = ""; let statusClass = "";
+            if (licStr) {
+                try {
+                    const lic = JSON.parse(licStr);
+                    const localDid = getDeviceID();
+                    if (lic.d !== localDid) { statusText = "Device Mismatch - Reactivate"; statusClass = "expired"; }
+                    else {
+                        const daysDiff = Math.ceil((lic.e - now) / (1000 * 60 * 60 * 24));
+                        const graceEnd = lic.e + (GRACE_DAYS * 24 * 60 * 60 * 1000);
+                        if (lic.e > now) { statusText = `Active (${daysDiff} days remaining)`; statusClass = ""; }
+                        else if (now < graceEnd) {
+                            const graceDaysLeft = Math.ceil((graceEnd - now) / (1000 * 60 * 60 * 24));
+                            statusText = `License Expired. ${graceDaysLeft} days grace remaining.`; statusClass = "grace";
+                        } else { statusText = "License Expired. Renew now."; statusClass = "expired"; }
+                    }
+                } catch(e) { statusText = "Corrupt License"; statusClass = "expired"; }
+            } else if (now < trialExpiry) {
+                const daysLeft = Math.ceil((trialExpiry - now) / (1000 * 60 * 60 * 24));
+                statusText = `Trial Mode: ${daysLeft} days remaining`; statusClass = "";
+            } else { statusText = "Trial Expired. License required."; statusClass = "expired"; }
+            banner.innerText = statusText;
+            banner.className = 'license-status-banner ' + statusClass;
+        }
+
+        // --- APP INIT ---
+        window.onload = function() {
+            initLicense();
+            document.getElementById('setting-business-name').value = state.settings.name;
+            document.getElementById('setting-currency').value = state.settings.currency;
+            document.getElementById('business-name-display').innerText = state.settings.name;
+           
+            renderPOS();
+            renderInventory();
+            renderLicenseSettings();
+            updateClock();
+            setInterval(updateClock, 60000);
+        };
+
+        // --- UTILS ---
+        function saveState() {
+            localStorage.setItem('sme_products', JSON.stringify(state.products));
+            localStorage.setItem('sme_sales', JSON.stringify(state.sales));
+            localStorage.setItem('sme_settings', JSON.stringify(state.settings));
+        }
+
+        function formatMoney(amount) {
+            return state.settings.currency + parseFloat(amount).toFixed(2);
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast show';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`view-${tabId}`).classList.add('active');
+            btn.classList.add('active');
+            if(tabId === 'reports') renderReports();
+            if(tabId === 'inventory') renderInventory();
+            if(tabId === 'settings') renderLicenseSettings();
+        }
+
+        // --- POS LOGIC ---
+        function renderPOS() {
+            const grid = document.getElementById('pos-grid');
+            const filter = document.getElementById('pos-search').value.toLowerCase();
+            grid.innerHTML = '';
+            state.products.forEach(p => {
+                if(p.name.toLowerCase().includes(filter)) {
+                    const isLow = p.stock <= p.lowStock;
+                    const isOut = p.stock <= 0;
+                    const card = document.createElement('div');
+                    card.className = `product-card ${isLow ? 'low-stock' : ''} ${isOut ? 'out-of-stock' : ''}`;
+                    card.onclick = () => addToCart(p.id);
+                    card.innerHTML = `
+                        <div class="prod-name">${p.name}</div>
+                        <div class="prod-price">${formatMoney(p.price)}</div>
+                        <div class="prod-stock">${isOut ? 'Out of Stock' : p.stock + ' left'}</div>
+                    `;
+                    grid.appendChild(card);
+                }
+            });
+        }
+
+        function filterPos() { renderPOS(); }
+
+        function addToCart(productId) {
+            const product = state.products.find(p => p.id == productId);
+            if(product.stock <= 0) { showToast("Out of stock!"); return; }
+            const existing = state.cart.find(i => i.id == productId);
+            if(existing) {
+                if(existing.qty < product.stock) { existing.qty++; } else { showToast("Max stock reached"); }
+            } else {
+                state.cart.push({ id: product.id, name: product.name, price: product.price, cost: product.cost, qty: 1 });
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const count = state.cart.reduce((sum, item) => sum + item.qty, 0);
+            document.getElementById('cart-total').innerText = formatMoney(total);
+            document.getElementById('cart-count').innerText = count + " items";
+            const bar = document.getElementById('cart-bar');
+            if(count > 0) bar.classList.add('visible');
+            else bar.classList.remove('visible');
+        }
+
+        // --- CHECKOUT LOGIC (PHASE 1 UPDATE) ---
+        function openCheckout() {
+            if(state.cart.length === 0) return;
+            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            document.getElementById('checkout-total-display').innerText = formatMoney(total);
+            document.getElementById('pay-received').value = '';
+            document.getElementById('pay-received').classList.remove('error');
+            document.getElementById('pay-received-error').innerText = '';
+            document.getElementById('change-display').innerText = '';
+            state.selectedPaymentMethod = null;
+            document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('btn-finalize').disabled = true;
+           
+            // Render Cart Items List
+            renderCheckoutCartItems();
+            openModal('modal-checkout');
+        }
+
+        function renderCheckoutCartItems() {
+            const list = document.getElementById('checkout-cart-list');
+            list.innerHTML = '';
+            state.cart.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'cart-item-row';
+                li.innerHTML = `
+                    <div>
+                        <div style="font-weight:bold;">${item.name}</div>
+                        <div class="text-small text-gray">${formatMoney(item.price)} x ${item.qty}</div>
+                    </div>
+                    <button class="btn btn-ghost" onclick="voidCartItem(${index})" title="Remove Item">✕</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Phase 1: Pre-Sale Item Voiding
+        function voidCartItem(index) {
+            state.cart.splice(index, 1);
+            updateCartUI();
+            // Re-render list inside modal without closing
+            renderCheckoutCartItems();
+            // Update Total display
+            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            document.getElementById('checkout-total-display').innerText = formatMoney(total);
+            if(state.cart.length === 0) {
+                closeModal('modal-checkout');
+            }
+        }
+
+        function selectPayment(method) {
+            state.selectedPaymentMethod = method;
+            document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById(`pay-${method.toLowerCase()}`).classList.add('selected');
+            document.getElementById('btn-finalize').disabled = false;
+        }
+
+        function calcChange() {
+            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const received = parseFloat(document.getElementById('pay-received').value) || 0;
+            const input = document.getElementById('pay-received');
+            input.classList.remove('error');
+            document.getElementById('pay-received-error').innerText = "";
+            if(received >= total) {
+                const change = received - total;
+                document.getElementById('change-display').innerText = `Change: ${formatMoney(change)}`;
+            } else {
+                document.getElementById('change-display').innerText = '';
+            }
+        }
+
+        function validateCheckout() {
+            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const input = document.getElementById('pay-received');
+            const errorMsg = document.getElementById('pay-received-error');
+            const receivedStr = input.value.trim();
+            const received = parseFloat(receivedStr);
+            input.classList.remove('error');
+            errorMsg.innerText = "";
+            if (!receivedStr || isNaN(received)) {
+                input.classList.add('error');
+                errorMsg.innerText = "Enter amount received to complete sale";
+                return false;
+            }
+            if (received <= 0 && total > 0) {
+                input.classList.add('error');
+                errorMsg.innerText = "Amount received cannot be less than total";
+                return false;
+            }
+            if (received < total) {
+                input.classList.add('error');
+                errorMsg.innerText = "Amount received cannot be less than total";
+                return false;
+            }
+            return true;
+        }
+
+        function cancelSale() {
+            state.cart = [];
+            updateCartUI();
+            document.getElementById('pay-received').classList.remove('error');
+            document.getElementById('pay-received-error').innerText = '';
+            closeModal('modal-checkout');
+            showToast("Sale Cancelled");
+        }
+
+        function finalizeSale() {
+            if (!isAppUnlocked()) { showToast("License required to complete sale"); return; }
+            if (!validateCheckout()) { return; }
+            document.getElementById('btn-finalize').disabled = true;
+
+            // Phase 1: Add voided: false to items
+            const itemsWithVoidFlag = state.cart.map(item => ({
+                ...item,
+                voided: false
+            }));
+
+            const saleRecord = {
+                id: generateId(),
+                timestamp: new Date().toISOString(),
+                items: itemsWithVoidFlag,
+                total: state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0),
+                cost: state.cart.reduce((sum, item) => sum + (item.cost * item.qty), 0),
+                method: state.selectedPaymentMethod,
+                voided: false
+            };
+
+            state.cart.forEach(cartItem => {
+                const product = state.products.find(p => p.id == cartItem.id);
+                if(product) product.stock -= cartItem.qty;
+            });
+
+            state.sales.push(saleRecord);
+            saveState();
+           
+            state.cart = [];
+            updateCartUI();
+            closeModal('modal-checkout');
+            renderPOS();
+            showToast("Sale Complete!");
+        }
+
+        // --- INVENTORY LOGIC ---
+        function renderInventory() {
+            const list = document.getElementById('inv-list');
+            const filter = document.getElementById('inv-search').value.toLowerCase();
+            list.innerHTML = '';
+            state.products.forEach(p => {
+                if(p.name.toLowerCase().includes(filter)) {
+                    const div = document.createElement('div');
+                    div.className = 'inv-item';
+                    div.innerHTML = `
+                        <div class="inv-details">
+                            <div style="font-weight:bold">${p.name}</div>
+                            <div class="text-small text-gray">Sell: ${formatMoney(p.price)} | Cost: ${formatMoney(p.cost)}</div>
+                            <div class="${p.stock <= p.lowStock ? 'text-danger' : ''}">Stock: ${p.stock}</div>
+                        </div>
+                        <div class="inv-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="openStockModal(${p.id})">Stock</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">✕</button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                }
+            });
+        }
+
+        function openStockModal(id) {
+            const p = state.products.find(prod => prod.id == id);
+            document.getElementById('stock-prod-id').value = id;
+            document.getElementById('stock-prod-name').innerText = p.name;
+            document.getElementById('stock-current-val').innerText = p.stock;
+            document.getElementById('stock-adj-qty').value = '';
+            openModal('modal-stock');
+        }
+
+        function processStockAdjustment() {
+            const id = document.getElementById('stock-prod-id').value;
+            const qty = parseInt(document.getElementById('stock-adj-qty').value);
+            if(!qty || qty === 0) { closeModal('modal-stock'); return; }
+            const p = state.products.find(prod => prod.id == id);
+            if (p.stock + qty < 0) { showToast("Stock cannot go below zero"); return; }
+            p.stock += qty;
+            saveState();
+            renderInventory();
+            renderPOS();
+            closeModal('modal-stock');
+            showToast("Stock Updated");
+        }
+
+        function saveProduct() {
+            const id = document.getElementById('prod-id').value;
+            const name = document.getElementById('prod-name').value;
+            const price = parseFloat(document.getElementById('prod-price').value);
+            const cost = parseFloat(document.getElementById('prod-cost').value);
+            const stock = parseInt(document.getElementById('prod-stock').value);
+            const lowStock = parseInt(document.getElementById('prod-min').value);
+            if(!name || isNaN(price) || isNaN(cost) || isNaN(stock)) { showToast("Please fill all fields correctly"); return; }
+            if(id) {
+                const p = state.products.find(prod => prod.id == id);
+                p.name = name; p.price = price; p.cost = cost; p.stock = stock; p.lowStock = lowStock;
+            } else {
+                state.products.push({ id: generateId(), name, price, cost, stock, lowStock });
+            }
+            saveState();
+            closeModal('modal-product');
+            renderInventory();
+            renderPOS();
+        }
+
+        function editProduct(id) {
+            const p = state.products.find(prod => prod.id == id);
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-name').value = p.name;
+            document.getElementById('prod-price').value = p.price;
+            document.getElementById('prod-cost').value = p.cost;
+            document.getElementById('prod-stock').value = p.stock;
+            document.getElementById('prod-min').value = p.lowStock;
+            document.getElementById('prod-modal-title').innerText = "Edit Product";
+            openModal('modal-product');
+        }
+
+        function deleteProduct(id) {
+            if(confirm("Delete this product?")) {
+                state.products = state.products.filter(p => p.id != id);
+                saveState();
+                renderInventory();
+                renderPOS();
+            }
+        }
+
+        // --- TRANSACTION DISPLAY HELPER ---
+        function getTransactionSummary(items) {
+            if (!items || items.length === 0) return "No items";
+            const displayLimit = 3;
+            const limitedItems = items.slice(0, displayLimit);
+            const itemStrings = limitedItems.map(i => `${i.name} x${i.qty}`);
+            let result = itemStrings.join(", ");
+            if (items.length > displayLimit) {
+                const remaining = items.length - displayLimit;
+                result += ` +${remaining} more`;
+            }
+            return result;
+        }
+
+        // --- REPORTS LOGIC (PHASE 1 UPDATED) ---
+        function renderReports() {
+            const today = new Date().toDateString();
+            const todaysSales = state.sales.filter(s => new Date(s.timestamp).toDateString() === today);
+            const unlocked = isAppUnlocked();
+           
+            let dailySalesTotal = 0;
+            let dailyCostTotal = 0;
+            let cashTotal = 0;
+            let ecoTotal = 0;
+
+            todaysSales.forEach(s => {
+                if (s.voided) return;
+               
+                // Phase 1: Dynamic calculation for totals based on active items
+                s.items.forEach(item => {
+                    // Data Migration: check if voided property exists
+                    if (typeof item.voided === 'undefined') item.voided = false;
+
+                    if (!item.voided) {
+                        const itemTotal = item.price * item.qty;
+                        const itemCost = item.cost * item.qty;
+                       
+                        dailySalesTotal += itemTotal;
+                        dailyCostTotal += itemCost;
+
+                        if(s.method === 'Cash') cashTotal += itemTotal;
+                        else ecoTotal += itemTotal;
+                    }
+                });
+            });
+
+            if (unlocked) {
+                document.getElementById('report-total-sales').innerText = formatMoney(dailySalesTotal);
+                document.getElementById('report-total-profit').innerText = formatMoney(dailySalesTotal - dailyCostTotal);
+                document.getElementById('report-cash').innerText = formatMoney(cashTotal);
+                document.getElementById('report-ecocash').innerText = formatMoney(ecoTotal);
+            } else {
+                document.getElementById('report-total-sales').innerText = "---";
+                document.getElementById('report-total-profit').innerText = "---";
+                document.getElementById('report-cash').innerText = "---";
+                document.getElementById('report-ecocash').innerText = "---";
+            }
+
+            const list = document.getElementById('transaction-list');
+            list.innerHTML = '';
+            const recent = [...todaysSales].reverse();
+
+            if(recent.length === 0) {
+                list.innerHTML = '<div style="text-align:center; color:gray;">No sales yet today.</div>';
+            } else {
+                recent.forEach(s => {
+                    const time = new Date(s.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                   
+                    // Calculate Net Total for display
+                    let netTotal = 0;
+                    let hasVoidedItems = false;
+                    s.items.forEach(i => {
+                        if (typeof i.voided === 'undefined') i.voided = false;
+                        if (!i.voided) netTotal += (i.price * i.qty);
+                        else hasVoidedItems = true;
+                    });
+
+                    const isFullyVoided = s.voided;
+                    const rowClass = isFullyVoided ? 'inv-item voided transaction-row' : 'inv-item transaction-row';
+                    const itemSummary = getTransactionSummary(s.items);
+                   
+                    // If fully voided, show Void status. Otherwise allow click to manage.
+                    const voidAction = isFullyVoided
+                        ? `<span class="text-gray text-small" style="margin-left: auto;">Voided</span>`
+                        : `<button class="btn btn-danger btn-sm" style="margin-left: auto;" onclick="voidFullSale('${s.id}')">Void Sale</button>`;
+
+                    const div = document.createElement('div');
+                    div.className = rowClass;
+                    div.style.cursor = isFullyVoided ? 'default' : 'pointer';
+                    div.onclick = () => { if(!isFullyVoided) openTransactionDetails(s.id); };
+                    div.innerHTML = `
+                        <div class="inv-details">
+                            <div style="font-weight:bold">${time} ${hasVoidedItems ? '(Items Voided)' : ''}</div>
+                            <div class="text-small truncate-text" title="${itemSummary}">${itemSummary} • ${s.method}</div>
+                        </div>
+                        <div style="font-weight:bold; color:${isFullyVoided ? 'var(--gray)' : 'var(--primary)'}">
+                            ${formatMoney(netTotal)}
+                        </div>
+                        ${voidAction}
+                    `;
+                    list.appendChild(div);
+                });
+            }
+        }
+
+        // Phase 1: Full Sale Void (Existing)
+        function voidFullSale(saleId) {
+            if(!confirm("Are you sure you want to void this sale? Stock will be restored.")) return;
+            const saleIndex = state.sales.findIndex(s => s.id === saleId);
+            if(saleIndex === -1) return;
+
+            const sale = state.sales[saleIndex];
+            sale.voided = true;
+           
+            sale.items.forEach(item => {
+                const product = state.products.find(p => p.id === item.id);
+                if(product) product.stock += item.qty;
+            });
+
+            saveState();
+            renderReports();
+            renderPOS();
+            showToast("Sale Voided");
+        }
+
+        // Phase 1: Transaction Details & Item Voiding
+        function openTransactionDetails(saleId) {
+            const sale = state.sales.find(s => s.id === saleId);
+            if(!sale) return;
+
+            document.getElementById('trans-details-time').innerText = new Date(s.timestamp).toLocaleString();
+            document.getElementById('trans-details-method').innerText = sale.method;
+
+            const list = document.getElementById('trans-items-list');
+            list.innerHTML = '';
+
+            let netTotal = 0;
+
+            sale.items.forEach((item, index) => {
+                // Migration check
+                if (typeof item.voided === 'undefined') item.voided = false;
+
+                if(!item.voided) {
+                    netTotal += (item.price * item.qty);
+                }
+
+                const div = document.createElement('div');
+                div.className = `inv-item ${item.voided ? 'item-voided' : ''}`;
+               
+                const voidBtn = item.voided
+                    ? `<span class="text-small text-gray">Voided</span>`
+                    : `<button class="btn btn-danger btn-sm" onclick="voidTransactionItem('${sale.id}', ${index})">Void</button>`;
+
+                div.innerHTML = `
+                    <div class="inv-details">
+                        <div style="font-weight:bold;">${item.name} x${item.qty}</div>
+                        <div class="text-small text-gray">${formatMoney(item.price)}</div>
+                    </div>
+                    ${voidBtn}
+                `;
+                list.appendChild(div);
+            });
+
+            document.getElementById('trans-details-total').innerText = formatMoney(netTotal);
+            openModal('modal-transaction-details');
+        }
+
+        function voidTransactionItem(saleId, itemIndex) {
+            if(!confirm("Void this item? Stock will be restored.")) return;
+
+            const sale = state.sales.find(s => s.id === saleId);
+            if(!sale) return;
+           
+            const item = sale.items[itemIndex];
+            if(item.voided) return; // Already voided
+
+            item.voided = true;
+           
+            // Restore Inventory
+            const product = state.products.find(p => p.id === item.id);
+            if(product) {
+                product.stock += item.qty;
+            }
+
+            saveState();
+            openTransactionDetails(saleId); // Re-render modal
+            renderReports(); // Re-render main report list to update totals
+            renderPOS(); // Update POS stock display
+            showToast("Item Voided");
+        }
+
+        // --- SETTINGS / DATA ---
+        function updateSettings() {
+            state.settings.name = document.getElementById('setting-business-name').value;
+            state.settings.currency = document.getElementById('setting-currency').value;
+            document.getElementById('business-name-display').innerText = state.settings.name;
+            saveState();
+            renderPOS();
+            renderInventory();
+            renderReports();
+            showToast("Settings Saved");
+        }
+
+        function exportCSV() {
+            if (!isAppUnlocked()) { showToast("License required to export data"); return; }
+            if(state.sales.length === 0) { showToast("No data to export"); return; }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Time,Total,Cost,Profit,Method,Voided,Items Sold\n";
+
+            state.sales.forEach(s => {
+                const d = new Date(s.timestamp);
+               
+                // Dynamic calculation for CSV as well
+                let netTotal = 0;
+                let netCost = 0;
+                let activeItems = [];
+               
+                s.items.forEach(i => {
+                    if (typeof i.voided === 'undefined') i.voided = false;
+                    if(!i.voided) {
+                        netTotal += (i.price * i.qty);
+                        netCost += (i.cost * i.qty);
+                        activeItems.push(i);
+                    }
+                });
+
+                const profit = netTotal - netCost;
+                const itemSummary = activeItems.map(i => `${i.name} x${i.qty}`).slice(0, 3).join('; ');
+                if(activeItems.length > 3) itemSummary += ` +${activeItems.length - 3} more`;
+
+                csvContent += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${netTotal},${netCost},${profit},${s.method},${s.voided ? 'Yes' : 'No'},"${itemSummary}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "sales_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearAllData() {
+            if(confirm("DANGER: This will wipe all products and sales history. Are you sure?")) {
+                localStorage.removeItem('sme_products');
+                localStorage.removeItem('sme_sales');
+                location.reload();
+            }
+        }
+
+        // --- MODAL UTILS ---
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+            if(id === 'modal-product' && !document.getElementById('prod-id').value) {
+                document.getElementById('prod-name').value = '';
+                document.getElementById('prod-price').value = '';
+                document.getElementById('prod-cost').value = '';
+                document.getElementById('prod-stock').value = '';
+                document.getElementById('prod-modal-title').innerText = "Add Product";
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+            if(id === 'modal-product') document.getElementById('prod-id').value = '';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('open');
+                if(event.target.id === 'modal-product') document.getElementById('prod-id').value = '';
+            }
+        }
+        if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("service-worker.js").then(registration => { console.log("Service Worker registered:", registration.scope);}).catch(error => { console.error("Service Worker registration failed:", error);
+                    });
+            });
+        }
+
+        // Add this to your main script in index.html, after the service worker registration
+
+        let deferredPrompt;
+        const installButton = document.createElement('button');
+
+        // Listen for the install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('✅ beforeinstallprompt fired!');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install button
+            showInstallButton();
+        });
+
+        // Create and show install button
+        function showInstallButton() {
+            installButton.innerHTML = '📱 Install App';
+            installButton.style.cssText = `
+                position: fixed;
+                bottom: 80px;
+                right: 20px;
+                background: var(--primary);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 20px;
+                font-weight: bold;
+                z-index: 1000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                cursor: pointer;
+            `;
+            installButton.onclick = installApp;
+            document.body.appendChild(installButton);
+        }
+
+        // Install the app
+        function installApp() {
+            if (!deferredPrompt) {
+                alert('Installation not available yet. Please interact with the app for 30 seconds.');
+                return;
+            }
+            
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted install');
+                } else {
+                    console.log('User dismissed install');
+                }
+                deferredPrompt = null;
+                installButton.remove();
+            });
+        }
+
+        // Also listen for app installed event
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('App was installed!');
+            installButton.remove();
+        });
+        
+    </script>
+</body>
+</html>
