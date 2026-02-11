@@ -1,6 +1,6 @@
 {
   "name": "ShopMate",
-  "short_name": "SM",
+  "short_name": "ShopMate",
   "description": "Point of Sale System",
   "start_url": "/index.html",
   "scope": "/",
