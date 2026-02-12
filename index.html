@@ -9,7 +9,6 @@
     <meta name="apple-mobile-web-app-title" content="ShopMate">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <link rel="apple-touch-startup-image" href="/splash.png">
-    <link rel="stylesheet" href="style.css">
 
     <!-- Android/Chrome -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -19,8 +18,616 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#008751">
 
-    <title>Shopmate</title>
+    <!-- CRYPTOJS LIBRARY ADDED FOR FALLBACK ON file:// -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
+    <title>Shopmate</title>
+    <style>
+        :root {
+            --primary: #008751; /* EcoCash Green inspiration */
+            --primary-dark: #005e38;
+            --accent: #f39c12; /* Orange for actions */
+            --danger: #e74c3c;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --white: #ffffff;
+            --gray: #95a5a6;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 8px;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font);
+            background-color: var(--light);
+            margin: 0;
+            padding: 0;
+            color: var(--dark);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header & Nav --- */
+        header {
+            background-color: var(--dark);
+            color: var(--white);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            z-index: 10;
+        }
+
+        .brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav {
+            background-color: var(--white);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 5px 15px;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .nav-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .nav-btn.active {
+            color: var(--primary);
+            background-color: rgba(0, 135, 81, 0.1);
+        }
+
+        /* --- Main Views --- */
+        main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 15px;
+            background: var(--light);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .view.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* --- POS View --- */
+        .pos-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            gap: 10px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            outline: none;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        .product-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            border: 2px solid transparent;
+            position: relative;
+            height: 140px;
+        }
+
+        .product-card:active {
+            background-color: #f9f9f9;
+            transform: scale(0.98);
+        }
+
+        .product-card.low-stock {
+            border-color: var(--danger);
+        }
+
+        .product-card.out-of-stock {
+            opacity: 0.5;
+            pointer-events: none;
+            background-color: #eee;
+        }
+
+        .prod-name {
+            font-weight: 600;
+            font-size:1rem;
+            margin-bottom: 5px;
+            line-height: 1.2;
+        }
+
+        .prod-price {
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .prod-stock {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: auto;
+        }
+
+        /* --- Cart / Checkout --- */
+        .cart-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--white);
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .cart-bar.visible {
+            transform: translateY(0);
+        }
+
+        .cart-info h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .cart-count {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .btn-checkout {
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        /* --- Inventory View --- */
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: var(--gray); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--gray); color: var(--dark); }
+        .btn-ghost { background: transparent; color: var(--danger); border: none; padding:4px 8px; font-size: 1.2rem; line-height: 1; }
+
+        .inv-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inv-item {
+            background: var(--white);
+            padding: 12px;
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+            gap: 4px;
+            transition: border 0.2s;
+        }
+
+        .inv-item.editing {
+            border: 2px solid var(--primary);
+            background-color: #f9fff9;
+        }
+
+        .inv-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            width: 100%;
+        }
+
+        .inv-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        /* --- INLINE EDIT STYLES --- */
+        .edit-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .edit-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .edit-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .edit-field.full-width {
+            grid-column: span 2;
+        }
+
+        .edit-field label {
+            font-size: 0.75rem;
+            color: var(--gray);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .edit-field input {
+            padding: 8px;
+            font-size: 0.95rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        /* Voided Item Styling */
+        .transaction-row.voided {
+            background-color: #f8f9fa;
+            color: var(--gray);
+            text-decoration: line-through;
+        }
+       
+        .item-voided {
+            text-decoration: line-through;
+            color: var(--gray);
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            padding: 4px;
+        }
+
+        /* --- Reports View --- */
+        .report-card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .report-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .report-label {
+            color: var(--gray);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: var(--white);
+            padding: 15px;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        /* --- License Section Styles --- */
+        .license-section {
+            background: var(--white);
+            padding: 15px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--accent);
+        }
+
+        .license-status-banner {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+            background-color: #e8f5e9;
+            color: var(--primary-dark);
+            transition: background 0.3s;
+        }
+       
+        .license-status-banner.grace {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffe0b2;
+        }
+
+        .license-status-banner.expired {
+            background-color: #ffebee;
+            color: var(--danger);
+        }
+       
+        .license-info-grid {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--white);
+            width: 100%;
+            max-width: 400px;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control.error {
+            border-color: var(--danger);
+            background-color: #fff5f5;
+        }
+
+        .input-error-msg {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 4px;
+            min-height: 1.2em;
+        }
+
+        /* Cart Items List in Modal */
+        .cart-items-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .cart-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .pay-btn {
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: var(--radius);
+            background: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .pay-btn.selected {
+            border-color: var(--primary);
+            background-color: rgba(0, 135, 81, 0.1);
+            color: var(--primary);
+        }
+
+        .modal-footer-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* --- Toast Notification --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--dark);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            margin-bottom: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Utility */
+        .text-right { text-align: right; }
+        .text-small { font-size: 0.85rem; }
+        .text-danger { color: var(--danger); }
+        .text-gray { color: var(--gray); }
+        .flex-full { flex: 1; }
+        .hidden { display: none !important; }
+        .truncate-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        /* --- RESPONSIVENESS (WIDTH ~344px) --- */
+        @media (max-width: 360px) {
+            :root { --radius: 6px; } 
+            header { padding: 8px 10px; }
+            .brand { font-size: 1rem; }
+            nav { padding: 5px 0; }
+            .nav-btn { padding: 4px 8px; font-size: 0.75rem; }
+            .nav-btn svg { width: 20px; height: 20px; }
+            .view { padding: 10px; }
+            .search-bar { padding: 10px; }
+            .product-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+            .product-card { height: 120px; padding: 8px; }
+            .prod-name { font-size: 0.9rem; }
+            .btn-sm { padding: 3px 6px; font-size: 0.75rem; }
+            .inventory-header { flex-direction: column; align-items: stretch; gap: 8px; }
+            .edit-row { gap: 8px; }
+            .edit-field label { font-size: 0.7rem; }
+            .edit-field input { padding: 6px; font-size: 0.85rem; }
+        }
+    </style>
 </head>
 <body>
 
@@ -30,7 +637,6 @@
             <span id="business-name-display">My Business</span>
         </div>
         <div id="clock" class="text-small">--:--</div>
-        <!-- Add this inside your <header> tag, after the brand -->
         <button id="mobile-install-btn" onclick="showMobileInstall()" 
                 style="background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; display: none;">
             📱 Install
@@ -168,10 +774,10 @@
             <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
                 <label style="font-weight: bold; font-size: 0.9rem;">Restore from Backup</label>
                 <div style="display:flex; gap:5px; margin-top:5px;">
-                    <input type="file" id="restoreFile" accept=".json" style="flex:1; font-size: 0.8rem;">
+                    <input type="file" id="restoreFile" accept=".smb" style="flex:1; font-size: 0.8rem;">
                     <button class="btn btn-primary btn-sm" onclick="restoreBackup()">Upload</button>
                 </div>
-                <p class="text-small text-gray" style="margin-top:5px;">Overwrites current data completely.</p>
+                <p class="text-small text-gray" style="margin-top:5px;">Supports encrypted .smb files.</p>
             </div>
 
             <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" onclick="exportCSV()">Export Sales (CSV)</button>
@@ -320,11 +926,11 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- LICENSE & CONFIG CONSTANTS ---
+        // --- CONSTANTS & CONFIG ---
         const TRIAL_DAYS = 7;
         const GRACE_DAYS = 3;
-       
-        // --- DATA STATE ---
+        const SECRET = "S3cur3Sh0pM4t3K3y-2024"; 
+
         const defaultProducts = [
             { id: 1, name: "Bread", price: 1.50, cost: 1.20, stock: 20, lowStock: 5 },
             { id: 2, name: "Cooking Oil 2L", price: 5.00, cost: 4.50, stock: 10, lowStock: 3 },
@@ -333,16 +939,67 @@
             { id: 5, name: "Bottle Water", price: 0.50, cost: 0.30, stock: 100, lowStock: 20 }
         ];
 
+        // --- STORAGE SELF-HEAL UTILS ---
+        function getSafeItem(key, fallback) {
+            try {
+                const item = localStorage.getItem(key);
+                if (item === null) return fallback;
+                try {
+                    return JSON.parse(item);
+                } catch (e) {
+                    console.warn(`Corrupted data in ${key}. Resetting.`);
+                    localStorage.setItem(key, JSON.stringify(fallback));
+                    return fallback;
+                }
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        // --- DATA STATE ---
         let state = {
-            products: JSON.parse(localStorage.getItem('sme_products')) || defaultProducts,
-            sales: JSON.parse(localStorage.getItem('sme_sales')) || [],
-            settings: JSON.parse(localStorage.getItem('sme_settings')) || { name: "My Shop", currency: "$" },
+            products: getSafeItem('sme_products', defaultProducts),
+            sales: getSafeItem('sme_sales', []),
+            settings: getSafeItem('sme_settings', { name: "My Shop", currency: "$" }),
             cart: [],
             selectedPaymentMethod: null
         };
 
-        // --- LICENSE UTILITIES ---
+        let todayStats = getSafeItem('sme_stats_today', {
+            date: new Date().toDateString(),
+            gross: 0,
+            profit: 0,
+            transactionCount: 0
+        });
 
+        // --- DAILY PROFIT RE-INTEGRATION ---
+        function recalcTodayStats() {
+            const today = new Date().toDateString();
+            if (todayStats.date === today && todayStats.transactionCount > 0) return; 
+
+            let gross = 0;
+            let profit = 0;
+            let count = 0;
+
+            const todaysSales = state.sales.filter(s => new Date(s.timestamp).toDateString() === today);
+            todaysSales.forEach(s => {
+                if (s.voided) return;
+                count++;
+                s.items.forEach(i => {
+                    if (!i.voided) {
+                        const itemTotal = i.price * i.qty;
+                        const itemCost = i.cost * i.qty;
+                        gross += itemTotal;
+                        profit += (itemTotal - itemCost);
+                    }
+                });
+            });
+
+            todayStats = { date: today, gross, profit, transactionCount: count };
+            localStorage.setItem('sme_stats_today', JSON.stringify(todayStats));
+        }
+
+        // --- LICENSE & ID UTILITIES ---
         function simpleHash(str) {
             let hash = 0;
             for (let i = 0; i < str.length; i++) {
@@ -362,6 +1019,17 @@
                 localStorage.setItem('device_id', did);
             }
             return did;
+        }
+
+        function getLicenseExpiry() {
+            try {
+                const licStr = localStorage.getItem('license_data');
+                if (!licStr) return 0;
+                const lic = JSON.parse(licStr);
+                return lic.e || 0;
+            } catch (e) {
+                return 0;
+            }
         }
 
         function initLicense() {
@@ -459,16 +1127,117 @@
             banner.className = 'license-status-banner ' + statusClass;
         }
 
-        // --- APP INIT ---
-        window.onload = function() {
-            initLicense();
+        // --- CRYPTO UTILITIES ---
+        async function getKeyMaterial(secret) {
+            // Using CryptoJS for key derivation if Web Crypto is unavailable
+            if (window.crypto && window.crypto.subtle) {
+                const enc = new TextEncoder();
+                return window.crypto.subtle.importKey(
+                    "raw",
+                    enc.encode(secret),
+                    { name: "PBKDF2" },
+                    false,
+                    ["deriveKey"]
+                );
+            } else {
+                // Fallback: We can't actually generate a Key object without Web Crypto, 
+                // but we can use CryptoJS for the encryption itself later if needed.
+                // For now, we throw here if Web Crypto is totally missing because deriveKey is complex to polyfill.
+                throw new Error("Web Crypto API not supported. Cannot secure backup without HTTPS/Localhost.");
+            }
+        }
+
+        async function getKey(keyMaterial) {
+            if (window.crypto && window.crypto.subtle) {
+                return window.crypto.subtle.deriveKey(
+                    {
+                        name: "PBKDF2",
+                        salt: new TextEncoder().encode("ShopMateSalt"),
+                        iterations: 100000,
+                        hash: "SHA-256"
+                    },
+                    keyMaterial,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+            } else {
+                throw new Error("Web Crypto API not supported.");
+            }
+        }
+
+        // --- FIX: SAFE SHA256 WITH FALLBACK ---
+        async function digestSHA256(message) {
+            // Check for Web Crypto availability
+            if (window.crypto && window.crypto.subtle) {
+                // Native Implementation (Secure Context)
+                const msgBuffer = new TextEncoder().encode(message);
+                const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } 
+            // Fallback to CryptoJS (for file:// or older browsers)
+            else if (typeof CryptoJS !== 'undefined') {
+                return CryptoJS.SHA256(message).toString();
+            } else {
+                // If neither is available
+                throw new Error("Cannot generate signature. Web Crypto API not supported and CryptoJS failed to load. Please run on HTTPS/Localhost or ensure CryptoJS is available.");
+            }
+        }
+
+        async function encryptData(dataString, key) {
+            // Note: If keyMaterial generation failed earlier, this won't run.
+            if (!window.crypto || !window.crypto.subtle) {
+                throw new Error("Encryption requires Web Crypto API (HTTPS/Localhost).");
+            }
+
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encodedData = new TextEncoder().encode(dataString);
+            const encrypted = await window.crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: iv },
+                key,
+                encodedData
+            );
             
-            // PART 3: Daily Auto Backup Check
-            const today = new Date().toDateString();
+            const combined = new Uint8Array(iv.length + encrypted.byteLength);
+            combined.set(iv);
+            combined.set(new Uint8Array(encrypted), iv.length);
+            
+            return combined;
+        }
+
+        async function decryptData(dataBuffer, key) {
+             if (!window.crypto || !window.crypto.subtle) {
+                throw new Error("Decryption requires Web Crypto API (HTTPS/Localhost).");
+            }
+            const iv = dataBuffer.slice(0, 12);
+            const encrypted = dataBuffer.slice(12);
+            
+            try {
+                const decrypted = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: iv },
+                    key,
+                    encrypted
+                );
+                return new TextDecoder().decode(decrypted);
+            } catch (e) {
+                throw new Error("Decryption failed. Invalid key or corrupted file.");
+            }
+        }
+
+        // --- APP INIT ---
+        window.onload = async function() {
+            initLicense();
+            recalcTodayStats(); 
+
             const lastBackup = localStorage.getItem("lastBackupDate");
-            if (lastBackup !== today) {
-                // Auto backup logic
-                triggerBackup(true); // Pass true to indicate silent/auto mode
+            const today = new Date().toDateString();
+            const hasSales = state.sales.length > 0;
+            
+            if (hasSales && lastBackup !== today) {
+                setTimeout(() => {
+                    showToast("Backup recommended");
+                }, 1000); 
             }
 
             document.getElementById('setting-business-name').value = state.settings.name;
@@ -698,15 +1467,17 @@
 
             state.sales.push(saleRecord);
             saveState();
+            recalcTodayStats();
            
             state.cart = [];
             updateCartUI();
             closeModal('modal-checkout');
             renderPOS();
+            renderInventory();
             showToast("Sale Complete!");
         }
 
-        // --- INVENTORY LOGIC (Updated for Threshold) ---
+        // --- INVENTORY LOGIC (Safe Edit Refactor) ---
         function renderInventory() {
             const list = document.getElementById('inv-list');
             const filter = document.getElementById('inv-search').value.toLowerCase();
@@ -717,7 +1488,6 @@
                     div.className = 'inv-item';
                     div.id = `inv-item-${p.id}`; 
                     
-                    // Display logic: Show stock and threshold
                     const isLow = p.stock <= p.lowStock;
                     const stockDisplay = isLow 
                         ? `<span class="text-danger">Stock: ${p.stock}</span>` 
@@ -727,7 +1497,6 @@
                         <div class="inv-details">
                             <div style="font-weight:bold">${p.name}</div>
                             <div class="text-small text-gray">Sell: ${formatMoney(p.price)} | Cost: ${formatMoney(p.cost)}</div>
-                            <!-- Display threshold next to stock -->
                             <div>${stockDisplay} <span class="text-small text-gray">(Min: ${p.lowStock})</span></div>
                         </div>
                         <div class="inv-actions">
@@ -741,23 +1510,19 @@
             });
         }
 
-        // Enable Inline Edit Mode with Threshold
         function enableInlineEdit(id) {
             const p = state.products.find(prod => prod.id == id);
             const row = document.getElementById(`inv-item-${id}`);
             if (!row) return;
 
             row.classList.add('editing');
-            // Using the labeled structure
             row.innerHTML = `
                 <div class="edit-container">
-                    <!-- Name: Full Width -->
                     <div class="edit-field full-width">
                         <label>Product Name</label>
                         <input type="text" id="edit-name-${id}" class="form-control" value="${p.name}" />
                     </div>
                     
-                    <!-- Price & Cost: 2 Columns -->
                     <div class="edit-row">
                         <div class="edit-field">
                             <label>Sell Price</label>
@@ -769,7 +1534,6 @@
                         </div>
                     </div>
 
-                    <!-- Stock & Threshold: 2 Columns -->
                     <div class="edit-row">
                         <div class="edit-field">
                             <label>Stock Qty</label>
@@ -789,29 +1553,33 @@
             `;
         }
 
-        // Save Inline Edit
-        function saveInlineEdit(id) {
-            const name = document.getElementById(`edit-name-${id}`).value.trim();
-            const price = parseFloat(document.getElementById(`edit-price-${id}`).value);
-            const cost = parseFloat(document.getElementById(`edit-cost-${id}`).value);
-            const stock = parseInt(document.getElementById(`edit-stock-${id}`).value);
-            const lowStock = parseInt(document.getElementById(`edit-low-${id}`).value); // Capture threshold
+        async function saveInlineEdit(id) {
+            let inventory = getSafeItem('sme_products', []);
+            
+            const index = inventory.findIndex(p => p.id == id);
+            if (index === -1) return;
 
-            // VALIDATION
+            const name = document.getElementById(`edit-name-${id}`).value.trim();
+            const price = Number(document.getElementById(`edit-price-${id}`).value);
+            const cost = Number(document.getElementById(`edit-cost-${id}`).value);
+            const stock = Number(document.getElementById(`edit-stock-${id}`).value);
+            const lowStock = Number(document.getElementById(`edit-low-${id}`).value); 
+
             if (!name) return alert("Product name required.");
             if (isNaN(price) || price < 0) return alert("Invalid selling price.");
             if (isNaN(cost) || cost < 0) return alert("Invalid cost price.");
             if (isNaN(stock) || stock < 0) return alert("Invalid stock quantity.");
             if (isNaN(lowStock) || lowStock < 0) return alert("Invalid alert threshold.");
 
-            const index = state.products.findIndex(p => p.id == id);
-            if (index !== -1) {
-                state.products[index] = { ...state.products[index], name, price, cost, stock, lowStock };
-                saveState();
-                renderInventory();
-                renderPOS(); // Update POS view to reflect new stock/threshold
-                showToast("Product updated");
-            }
+            inventory[index] = { ...inventory[index], name, price, cost, stock, lowStock };
+            
+            localStorage.setItem('sme_products', JSON.stringify(inventory));
+            
+            state.products = inventory; 
+            saveState();
+            renderInventory();
+            renderPOS();
+            showToast("Product updated");
         }
 
         function openStockModal(id) {
@@ -823,13 +1591,21 @@
             openModal('modal-stock');
         }
 
-        function processStockAdjustment() {
+        async function processStockAdjustment() {
+            let inventory = getSafeItem('sme_products', []);
             const id = document.getElementById('stock-prod-id').value;
             const qty = parseInt(document.getElementById('stock-adj-qty').value);
+            
             if(!qty || qty === 0) { closeModal('modal-stock'); return; }
-            const p = state.products.find(prod => prod.id == id);
-            if (p.stock + qty < 0) { showToast("Stock cannot go below zero"); return; }
-            p.stock += qty;
+            
+            const index = inventory.findIndex(p => p.id == id);
+            if(index === -1) return;
+
+            if (inventory[index].stock + qty < 0) { showToast("Stock cannot go below zero"); return; }
+            inventory[index].stock += qty;
+            
+            localStorage.setItem('sme_products', JSON.stringify(inventory));
+            state.products = inventory;
             saveState();
             renderInventory();
             renderPOS();
@@ -845,12 +1621,17 @@
             const stock = parseInt(document.getElementById('prod-stock').value);
             const lowStock = parseInt(document.getElementById('prod-min').value);
             if(!name || isNaN(price) || isNaN(cost) || isNaN(stock)) { showToast("Please fill all fields correctly"); return; }
+            
+            let inventory = getSafeItem('sme_products', defaultProducts);
             if(id) {
-                const p = state.products.find(prod => prod.id == id);
+                const p = inventory.find(prod => prod.id == id);
                 p.name = name; p.price = price; p.cost = cost; p.stock = stock; p.lowStock = lowStock;
             } else {
-                state.products.push({ id: generateId(), name, price, cost, stock, lowStock });
+                inventory.push({ id: generateId(), name, price, cost, stock, lowStock });
             }
+            
+            localStorage.setItem('sme_products', JSON.stringify(inventory));
+            state.products = inventory;
             saveState();
             closeModal('modal-product');
             renderInventory();
@@ -858,7 +1639,9 @@
         }
 
         function editProduct(id) {
-            const p = state.products.find(prod => prod.id == id);
+            const inventory = getSafeItem('sme_products', defaultProducts);
+            const p = inventory.find(prod => prod.id == id);
+            
             document.getElementById('prod-id').value = p.id;
             document.getElementById('prod-name').value = p.name;
             document.getElementById('prod-price').value = p.price;
@@ -871,83 +1654,109 @@
 
         function deleteProduct(id) {
             if(confirm("Delete this product?")) {
-                state.products = state.products.filter(p => p.id != id);
+                let inventory = getSafeItem('sme_products', defaultProducts);
+                inventory = inventory.filter(p => p.id != id);
+                
+                localStorage.setItem('sme_products', JSON.stringify(inventory));
+                state.products = inventory;
                 saveState();
                 renderInventory();
                 renderPOS();
             }
         }
 
-        // --- PART 2 & 3: BACKUP & RESTORE UTILITIES ---
+        // --- BACKUP & RESTORE (Encrypted) ---
+        async function triggerBackup() {
+            try {
+                const backupPayload = {
+                    version: "1.4.0",
+                    deviceId: getDeviceID(),
+                    licenseExpiry: getLicenseExpiry(),
+                    inventory: state.products,
+                    sales: state.sales,
+                    todayStats: {
+                        gross: todayStats.gross,
+                        profit: todayStats.profit,
+                        transactionCount: todayStats.transactionCount
+                    },
+                    exportedAt: Date.now()
+                };
 
-        function triggerBackup(isAuto = false) {
-            const backupData = {
-                backupDate: new Date().toISOString(),
-                products: state.products,
-                sales: state.sales,
-                settings: state.settings
-            };
+                const payloadString = JSON.stringify(backupPayload);
+                // Using fixed digestSHA256 with fallback
+                const signature = await digestSHA256(payloadString + SECRET);
 
-            const blob = new Blob([JSON.stringify(backupData, null, 2)], {
-                type: "application/json"
-            });
+                const signedPayload = { ...backupPayload, signature };
+                const signedPayloadString = JSON.stringify(signedPayload);
 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `shopmate-backup-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
+                // Derive Key & Encrypt
+                const keyMaterial = await getKeyMaterial(SECRET);
+                const key = await getKey(keyMaterial);
+                const encryptedData = await encryptData(signedPayloadString, key);
 
-            localStorage.setItem("lastBackupDate", new Date().toDateString());
-            
-            if (!isAuto) showToast("Backup downloaded");
+                const blob = new Blob([encryptedData], { type: "application/octet-stream" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `shopmate-backup-${Date.now()}.smb`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                localStorage.setItem("lastBackupDate", new Date().toDateString());
+                showToast("Encrypted Backup downloaded");
+            } catch (err) {
+                console.error(err);
+                alert("Backup failed: " + err.message);
+            }
         }
 
-        function restoreBackup() {
+        async function restoreBackup() {
             const fileInput = document.getElementById("restoreFile");
             const file = fileInput.files[0];
-            if (!file) return alert("Select a backup file.");
+            if (!file) return alert("Select a backup file (.smb).");
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
+                    const encryptedData = new Uint8Array(e.target.result);
+                    
+                    // Derive Key & Decrypt
+                    const keyMaterial = await getKeyMaterial(SECRET);
+                    const key = await getKey(keyMaterial);
+                    const decryptedString = await decryptData(encryptedData, key);
+                    
+                    const signedPayload = JSON.parse(decryptedString);
 
-                    if (!data.products || !Array.isArray(data.products)) {
-                        return alert("Invalid backup file: Missing products array.");
+                    // Verify Integrity using fixed digestSHA256
+                    const { signature, ...payloadWithoutSignature } = signedPayload;
+                    const expectedSignature = await digestSHA256(JSON.stringify(payloadWithoutSignature) + SECRET);
+
+                    if (signature !== expectedSignature) {
+                        return alert("Security Alert: Backup signature mismatch or file tampered.");
                     }
 
                     const confirmRestore = confirm(
-                        "This will overwrite your current inventory, sales, and settings. Are you sure?"
+                        "Valid Backup Detected.\nRestore ID: " + signedPayload.deviceId + "\nThis will overwrite your current inventory and sales. Continue?"
                     );
 
                     if (!confirmRestore) return;
 
-                    state.products = data.products;
-                    if (data.sales) state.sales = data.sales;
-                    if (data.settings) state.settings = data.settings;
-
-                    saveState();
-
-                    renderInventory();
-                    renderPOS();
-                    renderReports();
+                    localStorage.setItem('sme_products', JSON.stringify(signedPayload.inventory));
+                    localStorage.setItem('sme_sales', JSON.stringify(signedPayload.sales));
                     
-                    document.getElementById('setting-business-name').value = state.settings.name;
-                    document.getElementById('setting-currency').value = state.settings.currency;
-                    document.getElementById('business-name-display').innerText = state.settings.name;
+                    if(signedPayload.todayStats) {
+                        localStorage.setItem('sme_stats_today', JSON.stringify(signedPayload.todayStats));
+                    }
 
-                    alert("Restore successful.");
-                    fileInput.value = ""; 
+                    alert("Restore successful. Reloading...");
+                    location.reload();
 
                 } catch (err) {
-                    alert("Backup file corrupted or unreadable.");
+                    alert("Restore failed: Invalid file or decryption error.");
                     console.error(err);
                 }
             };
-
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         }
 
         // --- TRANSACTION DISPLAY HELPER ---
@@ -970,10 +1779,16 @@
             const todaysSales = state.sales.filter(s => new Date(s.timestamp).toDateString() === today);
             const unlocked = isAppUnlocked();
            
-            let dailySalesTotal = 0;
-            let dailyCostTotal = 0;
+            let dailySalesTotal = todayStats.gross;
+            let dailyCostTotal = dailySalesTotal - todayStats.profit;
             let cashTotal = 0;
             let ecoTotal = 0;
+
+            if (todayStats.date !== today) {
+                recalcTodayStats();
+                dailySalesTotal = todayStats.gross;
+                dailyCostTotal = dailySalesTotal - todayStats.profit;
+            }
 
             todaysSales.forEach(s => {
                 if (s.voided) return;
@@ -981,11 +1796,6 @@
                     if (typeof item.voided === 'undefined') item.voided = false;
                     if (!item.voided) {
                         const itemTotal = item.price * item.qty;
-                        const itemCost = item.cost * item.qty;
-                       
-                        dailySalesTotal += itemTotal;
-                        dailyCostTotal += itemCost;
-
                         if(s.method === 'Cash') cashTotal += itemTotal;
                         else ecoTotal += itemTotal;
                     }
@@ -994,7 +1804,7 @@
 
             if (unlocked) {
                 document.getElementById('report-total-sales').innerText = formatMoney(dailySalesTotal);
-                document.getElementById('report-total-profit').innerText = formatMoney(dailySalesTotal - dailyCostTotal);
+                document.getElementById('report-total-profit').innerText = formatMoney(todayStats.profit);
                 document.getElementById('report-cash').innerText = formatMoney(cashTotal);
                 document.getElementById('report-ecocash').innerText = formatMoney(ecoTotal);
             } else {
@@ -1051,18 +1861,26 @@
 
         function voidFullSale(saleId) {
             if(!confirm("Are you sure you want to void this sale? Stock will be restored.")) return;
-            const saleIndex = state.sales.findIndex(s => s.id === saleId);
+            let sales = getSafeItem('sme_sales', []);
+            const saleIndex = sales.findIndex(s => s.id === saleId);
             if(saleIndex === -1) return;
 
-            const sale = state.sales[saleIndex];
+            const sale = sales[saleIndex];
             sale.voided = true;
-           
+            
+            let inventory = getSafeItem('sme_products', defaultProducts);
             sale.items.forEach(item => {
-                const product = state.products.find(p => p.id === item.id);
+                const product = inventory.find(p => p.id === item.id);
                 if(product) product.stock += item.qty;
             });
+            
+            localStorage.setItem('sme_sales', JSON.stringify(sales));
+            localStorage.setItem('sme_products', JSON.stringify(inventory));
+            state.sales = sales;
+            state.products = inventory;
 
             saveState();
+            recalcTodayStats();
             renderReports();
             renderPOS();
             showToast("Sale Voided");
@@ -1111,20 +1929,28 @@
         function voidTransactionItem(saleId, itemIndex) {
             if(!confirm("Void this item? Stock will be restored.")) return;
 
-            const sale = state.sales.find(s => s.id === saleId);
+            let sales = getSafeItem('sme_sales', []);
+            const sale = sales.find(s => s.id === saleId);
             if(!sale) return;
            
             const item = sale.items[itemIndex];
             if(item.voided) return; 
 
             item.voided = true;
-           
-            const product = state.products.find(p => p.id === item.id);
+            
+            let inventory = getSafeItem('sme_products', defaultProducts);
+            const product = inventory.find(p => p.id === item.id);
             if(product) {
                 product.stock += item.qty;
             }
+            
+            localStorage.setItem('sme_sales', JSON.stringify(sales));
+            localStorage.setItem('sme_products', JSON.stringify(inventory));
+            state.sales = sales;
+            state.products = inventory;
 
             saveState();
+            recalcTodayStats();
             openTransactionDetails(saleId); 
             renderReports();
             renderPOS(); 
@@ -1218,22 +2044,15 @@
             });
         }
 
-        // Add this to your main script in index.html, after the service worker registration
-
         let deferredPrompt;
         const installButton = document.createElement('button');
 
-        // Listen for the install prompt
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('✅ beforeinstallprompt fired!');
             e.preventDefault();
             deferredPrompt = e;
-            
-            // Show install button
             showInstallButton();
         });
 
-        // Create and show install button
         function showInstallButton() {
             installButton.innerHTML = '📱 Install App';
             installButton.style.cssText = `
@@ -1254,7 +2073,6 @@
             document.body.appendChild(installButton);
         }
 
-        // Install the app
         function installApp() {
             if (!deferredPrompt) {
                 alert('Installation not available yet. Please interact with the app for 30 seconds.');
@@ -1273,12 +2091,10 @@
             });
         }
 
-        // Also listen for app installed event
         window.addEventListener('appinstalled', (evt) => {
             console.log('App was installed!');
             installButton.remove();
         });
-        
     </script>
 </body>
 </html>
